@@ -1,0 +1,1 @@
+See which team claimed the chunk you're looking at, right in Jade's tooltip.
