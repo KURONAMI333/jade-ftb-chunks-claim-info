@@ -2,6 +2,7 @@ package com.kuronami.jadeftbclaims.client;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.MinecraftProfileTexture;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -10,6 +11,8 @@ import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec2;
+import snownee.jade.api.config.IWailaConfig;
+import snownee.jade.overlay.OverlayRenderer;
 import snownee.jade.api.ui.Element;
 
 import java.util.LinkedHashMap;
@@ -38,7 +41,7 @@ final class OwnerFaceElement extends Element {
     @Override public Vec2 getSize() { return new Vec2(FACE_SIZE, FACE_SIZE); }
 
     @Override
-    public void render(GuiGraphics graphics, float x, float y, float z, float alpha) {
+    public void render(GuiGraphics graphics, float x, float y, float right, float bottom) {
         UUID ownerId = profile.getId();
         if (ownerId == null) return;
         ResourceLocation texture = null;
@@ -50,12 +53,19 @@ final class OwnerFaceElement extends Element {
             }
             if (texture == null) texture = cachedTexture(minecraft, ownerId);
             if (texture == null) texture = DefaultPlayerSkin.getDefaultSkin(ownerId);
-            graphics.pose().pushPose();
+            float[] oldColor = RenderSystem.getShaderColor().clone();
+            boolean pushed = false;
             try {
-                graphics.pose().translate(x, y, z);
+                float opacity = IWailaConfig.get().getOverlay().getAlpha() * OverlayRenderer.alpha;
+                graphics.setColor(oldColor[0], oldColor[1], oldColor[2],
+                        oldColor[3] * Math.max(0.0F, Math.min(1.0F, opacity)));
+                graphics.pose().pushPose();
+                pushed = true;
+                graphics.pose().translate(x, y, 0);
                 PlayerFaceRenderer.draw(graphics, texture, 0, 0, FACE_SIZE, true, false);
             } finally {
-                graphics.pose().popPose();
+                if (pushed) graphics.pose().popPose();
+                graphics.setColor(oldColor[0], oldColor[1], oldColor[2], oldColor[3]);
             }
         } catch (Throwable ignored) {
             // Skin/render failures must not suppress claim text or Jade rendering.

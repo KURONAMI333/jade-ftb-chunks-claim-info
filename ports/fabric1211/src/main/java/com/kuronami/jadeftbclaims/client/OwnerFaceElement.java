@@ -2,6 +2,7 @@ package com.kuronami.jadeftbclaims.client;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.yggdrasil.ProfileResult;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.PlayerFaceRenderer;
 import net.minecraft.client.gui.GuiGraphics;
@@ -10,6 +11,7 @@ import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.Util;
 import net.minecraft.world.phys.Vec2;
+import snownee.jade.api.ui.IDisplayHelper;
 import snownee.jade.api.ui.Element;
 
 import java.util.LinkedHashMap;
@@ -41,7 +43,7 @@ final class OwnerFaceElement extends Element {
     }
 
     @Override
-    public void render(GuiGraphics graphics, float x, float y, float z, float alpha) {
+    public void render(GuiGraphics graphics, float x, float y, float right, float bottom) {
         PlayerSkin skin = null;
         try {
             skin = onlineSkin();
@@ -64,16 +66,21 @@ final class OwnerFaceElement extends Element {
         }
         if (skin == null) return;
 
+        float[] oldColor = RenderSystem.getShaderColor().clone();
+        boolean pushed = false;
         try {
+            float opacity = IDisplayHelper.get().opacity();
+            graphics.setColor(oldColor[0], oldColor[1], oldColor[2],
+                    oldColor[3] * Math.max(0.0F, Math.min(1.0F, opacity)));
             graphics.pose().pushPose();
-            try {
-                graphics.pose().translate(x, y, z);
-                PlayerFaceRenderer.draw(graphics, skin.texture(), 0, 0, FACE_SIZE, true, false);
-            } finally {
-                graphics.pose().popPose();
-            }
+            pushed = true;
+            graphics.pose().translate(x, y, 0);
+            PlayerFaceRenderer.draw(graphics, skin.texture(), 0, 0, FACE_SIZE, true, false);
         } catch (Throwable ignored) {
             // A skin failure must never suppress the claim row or crash Jade rendering.
+        } finally {
+            if (pushed) graphics.pose().popPose();
+            graphics.setColor(oldColor[0], oldColor[1], oldColor[2], oldColor[3]);
         }
     }
 
