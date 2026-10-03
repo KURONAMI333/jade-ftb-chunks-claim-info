@@ -37,6 +37,6 @@ public final class ClaimComponentProvider implements IBlockComponentProvider {
 
         Optional<ClaimInfo> info =
                 FtbClaimLookup.lookup(accessor.getLevel().dimension(), pos.getX(), pos.getZ());
-        info.ifPresent(i -> tooltip.add(ClaimTooltip.line(i)));
+        info.ifPresent(i -> ClaimTooltip.add(tooltip, i));
     }
 }

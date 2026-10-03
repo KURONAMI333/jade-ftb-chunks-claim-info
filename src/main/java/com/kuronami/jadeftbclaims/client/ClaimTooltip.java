@@ -4,6 +4,12 @@ import com.kuronami.jadeftbclaims.ftb.ClaimInfo;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import snownee.jade.api.ITooltip;
+import snownee.jade.api.ui.IElement;
+import snownee.jade.api.ui.IElementHelper;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /** 表示行の組み立て。判定に使う純粋な部分（テスト対象）。 */
 public final class ClaimTooltip {
@@ -26,5 +32,25 @@ public final class ClaimTooltip {
                             .withStyle(ChatFormatting.DARK_AQUA));
         }
         return line;
+    }
+
+    /** Adds the owner head and the unchanged colored claim text as one Jade row. */
+    public static void add(ITooltip tooltip, ClaimInfo info) {
+        if (info.ownerProfile() == null) {
+            tooltip.add(line(info));
+            return;
+        }
+
+        List<IElement> row = new ArrayList<>(3);
+        MutableComponent claim = Component.translatable(KEY_CLAIMED, info.teamName())
+                .withStyle(ChatFormatting.GRAY);
+        row.add(IElementHelper.get().text(claim));
+        row.add(IElementHelper.get().spacer(2, 0));
+        row.add(new OwnerFaceElement(info.ownerProfile()));
+        if (info.forceLoaded()) {
+            row.add(IElementHelper.get().text(Component.literal(" ")
+                    .append(Component.translatable(KEY_FORCE_LOADED).withStyle(ChatFormatting.DARK_AQUA))));
+        }
+        tooltip.add(row);
     }
 }

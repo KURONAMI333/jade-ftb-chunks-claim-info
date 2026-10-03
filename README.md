@@ -1,10 +1,11 @@
 # Jade x FTB Chunks Claim Info
 
-Look at a block in a claimed chunk and Jade's tooltip gains one line: `Claimed: <team name>` — force-loaded chunks get a `[force-loaded]` marker. No map screen needed.
+Look at a block in a claimed chunk and Jade's tooltip gains one line: `Claimed: <team name>` with the owning player's skin face beside the name. Force-loaded chunks also get a `[force-loaded]` marker. No map screen needed.
 
 - Minecraft 1.21.1, NeoForge 21.1+, client-side only
 - Requires [Jade](https://www.curseforge.com/minecraft/mc-mods/jade) 15.10.6+ and [FTB Chunks](https://www.curseforge.com/minecraft/mc-mods/ftb-chunks-forge) 2101.1.22+
-- Never sends packets and never asks the server anything — it only reads the claim data FTB Chunks already synced to your client, so private and hidden claims stay private
+- Never asks the game server for claim data — it only reads what FTB Chunks already synced to your client, so private and hidden claims stay private
+- Uses the online player's resolved skin when available. For offline owners whose profile has no skin texture yet, it asks Minecraft's profile/skin service asynchronously and caches the result; a UUID-specific default face is shown while it loads
 - If FTB Chunks internals change in a future update, the line quietly disappears instead of crashing (the lookup is isolated and verified against 2101.1.22)
 
 The provider can be toggled from Jade's plugin config screen (`Chunk claim info`).

@@ -7,11 +7,15 @@ import dev.ftb.mods.ftbchunks.client.map.MapManager;
 import dev.ftb.mods.ftbchunks.client.map.MapRegion;
 import dev.ftb.mods.ftblibrary.math.XZ;
 import dev.ftb.mods.ftbteams.api.Team;
+import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
+import dev.ftb.mods.ftbteams.api.client.KnownClientPlayer;
+import com.mojang.authlib.GameProfile;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
@@ -101,7 +105,41 @@ public final class FtbClaimLookup {
             if (team == null) return Optional.empty();
 
             return Optional.of(new ClaimInfo(team.getColoredName(),
-                    chunk.getForceLoadedDate().isPresent()));
+                    chunk.getForceLoadedDate().isPresent(), resolveOwnerProfile(team)));
+        }
+    }
+
+    /**
+     * Resolve the real player who owns this claim team. Personal teams use their
+     * team ID as the player's UUID; their Team#getOwner is the NIL UUID. Party teams
+     * instead expose their owner through Team#getOwner. Server teams have no player
+     * owner and intentionally receive no face.
+     */
+    private static GameProfile resolveOwnerProfile(Team team) {
+        try {
+            UUID ownerId;
+            if (team.isPlayerTeam()) {
+                ownerId = team.getId();
+            } else if (team.isPartyTeam()) {
+                ownerId = team.getOwner();
+            } else {
+                return null;
+            }
+            if (ownerId == null || ownerId.equals(net.minecraft.Util.NIL_UUID)) return null;
+
+            FTBTeamsAPI.API api = FTBTeamsAPI.api();
+            if (!api.isClientManagerLoaded()) return new GameProfile(ownerId, "");
+            return api.getClientManager().getKnownPlayer(ownerId)
+                    .map(player -> {
+                        GameProfile profile = player.profile();
+                        return profile != null && ownerId.equals(profile.getId())
+                                ? profile
+                                : new GameProfile(ownerId, player.name());
+                    })
+                    .orElseGet(() -> new GameProfile(ownerId, ""));
+        } catch (Throwable ignored) {
+            // A missing owner profile hides only the face; the existing claim text remains.
+            return null;
         }
     }
 }
