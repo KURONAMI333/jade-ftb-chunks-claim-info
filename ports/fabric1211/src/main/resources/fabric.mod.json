@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${version}",
+  "name": "${mod_name}",
+  "description": "${mod_description}",
+  "authors": ["${mod_authors}"],
+  "contact": {
+    "homepage": "https://www.curseforge.com/minecraft/mc-mods/jade-ftb-chunks-claim-info",
+    "issues": "https://x.com/kuronami333"
+  },
+  "license": "${mod_license}",
+  "icon": "logo.png",
+  "environment": "client",
+  "entrypoints": {
+    "jade": ["com.kuronami.jadeftbclaims.jade.ClaimsJadePlugin"]
+  },
+  "depends": {
+    "fabricloader": ">=${fabric_loader_version}",
+    "minecraft": "${minecraft_version}",
+    "java": ">=21",
+    "jade": ">=15.10.6",
+    "ftbchunks": ">=2101.1.22"
+  }
+}

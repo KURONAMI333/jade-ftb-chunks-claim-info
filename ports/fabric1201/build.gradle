@@ -1,0 +1,64 @@
+plugins {
+    id 'fabric-loom' version '1.10-SNAPSHOT'
+    id 'maven-publish'
+}
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = "${mod_id}-fabric-${minecraft_version}"
+}
+
+repositories {
+    maven { url = 'https://maven.ftb.dev/releases' }
+    maven { url = 'https://maven.architectury.dev/' }
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
+
+    // Host APIs are compile-only and supplied by the player's installation.
+    modCompileOnly "maven.modrinth:jade:${jade_version}"
+    modCompileOnly "dev.ftb.mods:ftb-chunks-fabric:${ftb_chunks_version}"
+    modCompileOnly "dev.ftb.mods:ftb-teams-fabric:${ftb_teams_version}"
+    modCompileOnly "dev.ftb.mods:ftb-library-fabric:${ftb_library_version}"
+
+    // Dev client only; these dependencies are not bundled into the addon jar.
+    modRuntimeOnly "maven.modrinth:jade:${jade_version}"
+    modRuntimeOnly "dev.ftb.mods:ftb-chunks-fabric:${ftb_chunks_version}"
+    modRuntimeOnly "dev.ftb.mods:ftb-teams-fabric:${ftb_teams_version}"
+    modRuntimeOnly "dev.ftb.mods:ftb-library-fabric:${ftb_library_version}"
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') {
+        expand version: project.version
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
+}
+
+tasks.named('jar', Jar).configure {
+    def licenseFile = file('../../LICENSE')
+    def licenseRenamed = "LICENSE_${mod_id}"
+    inputs.file(licenseFile)
+    from(licenseFile) { rename { licenseRenamed } }
+}

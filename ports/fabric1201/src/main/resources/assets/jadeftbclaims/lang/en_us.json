@@ -1,0 +1,6 @@
+{
+  "config.jade.plugin_jadeftbclaims": "Jade x FTB Chunks Claim Info",
+  "config.jade.plugin_jadeftbclaims.claim_info": "Chunk claim info",
+  "tooltip.jadeftbclaims.claimed": "Claimed: %s",
+  "tooltip.jadeftbclaims.force_loaded": "[force-loaded]"
+}

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "jadeftbclaims",
+  "version": "${version}",
+  "name": "Jade x FTB Chunks Claim Info",
+  "description": "Shows the claim owner's Minecraft skin face next to the team name in Jade, with the existing force-load marker, using client-side data.",
+  "authors": [
+    "KURONAMI"
+  ],
+  "contact": {
+    "homepage": "https://www.curseforge.com/minecraft/mc-mods/jade-ftb-chunks-claim-info"
+  },
+  "license": "All Rights Reserved",
+  "icon": "logo.png",
+  "environment": "client",
+  "entrypoints": {
+    "jade": [
+      "com.kuronami.jadeftbclaims.jade.ClaimsJadePlugin"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.14.21",
+    "fabric-api": ">=0.83.1+1.20.1",
+    "minecraft": "1.20.1",
+    "java": ">=17",
+    "jade": ">=11.13.3",
+    "ftbchunks": ">=2001.3.8",
+    "ftbteams": ">=2001.3.2",
+    "ftblibrary": ">=2001.2.13"
+  }
+}

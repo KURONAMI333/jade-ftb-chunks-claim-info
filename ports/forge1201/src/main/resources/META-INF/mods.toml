@@ -1,0 +1,70 @@
+# Jade x FTB Chunks Claim Info — mods.toml
+# client 単独 MOD。ネットワーク登録も Mixin も持たない。
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+
+license="${mod_license}"
+issueTrackerURL="https://x.com/kuronami333"
+
+# このMODはclientだけで動く。server側jar要求を出さない。
+clientSideOnly=true
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+authors="${mod_authors}"
+displayURL="https://www.curseforge.com/minecraft/mc-mods/jade-ftb-chunks-claim-info"
+logoFile="logo.png"
+description='''
+${mod_description}
+'''
+
+# ─────────────────────────────────────────────────
+# 依存
+# ─────────────────────────────────────────────────
+[[dependencies.${mod_id}]]
+    modId="forge"
+    mandatory=true
+    versionRange="${forge_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+# Jade: tooltip の表示先。全データは client 側の受信済み同期に依存するので
+# サーバ導入は不要。
+[[dependencies.${mod_id}]]
+    modId="jade"
+    mandatory=true
+    versionRange="${jade_version_range}"
+    ordering="AFTER"
+    side="CLIENT"
+
+# FTB Chunks: claim データの読み取り元。同じく client 側のみ。
+# 読むのは client.map.* の内部層なので下限は実コード検証した版 (2001.3.8) に揃える。
+[[dependencies.${mod_id}]]
+    modId="ftbchunks"
+    mandatory=true
+    versionRange="${ftb_chunks_version_range}"
+    ordering="AFTER"
+    side="CLIENT"
+
+[[dependencies.${mod_id}]]
+    modId="ftbteams"
+    mandatory=true
+    versionRange="${ftb_teams_version_range}"
+    ordering="AFTER"
+    side="CLIENT"
+
+[[dependencies.${mod_id}]]
+    modId="ftblibrary"
+    mandatory=true
+    versionRange="${ftb_library_version_range}"
+    ordering="AFTER"
+    side="CLIENT"

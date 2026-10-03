@@ -1,0 +1,210 @@
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
+    id 'org.parchmentmc.librarian.forgegradle' version '1.+'
+    id 'java-library'
+}
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)  // 1.20.1 = Java 17
+
+// Forge GameTest 用の追加 sourceSet。gameTestServer run の mod として
+// main と一緒に載せる（@GameTestHolder の scan 対象にするため）。
+sourceSets {
+    gametest {
+        java {
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+            runtimeClasspath += output + compileClasspath
+        }
+    }
+}
+
+minecraft {
+    mappings channel: 'parchment', version: "${parchment_mappings_version}-${parchment_minecraft_version}"
+
+    copyIdeResources = true
+
+    runs {
+        configureEach {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            property 'forge.enabledGameTestNamespaces', mod_id
+            // dev 実行 jar は mapped_parchment (mojmap 名)。依存 jar の refmap
+            // `mappings` は mojmap->SRG 変換なので、そのままだと parchment 名の
+            // ランタイムに SRG 名を探して InvalidInjectionException になる。
+            // refmap を切ると annotation の mojmap 名がそのまま解決される。
+            property 'mixin.env.disableRefMap', 'true'
+            mods {
+                // clientSideOnly の本体と分けて server でもロードされる
+                // 別 mod file にする。@GameTestHolder の scan data を生む。
+                jadeftbclaims_gametest {
+                    source sourceSets.gametest
+                }
+            }
+        }
+        client {
+            workingDirectory project.file('run')
+            // B3 smoke: 製品は build/libs の JAR を run/mods から mod file と
+            // してロードし、dev source 座標は載せない（JAR との二重登録回避）。
+            // probe 経路は configureEach の gametest mod が担う。
+            sources sourceSets.main
+            args '--server', 'localhost', '--port', '25565'
+        }
+        server {
+            workingDirectory project.file('run/server')
+            // 正規 runclient_fresh.sh の server 判定はコマンドラインの
+            // `serverRun` 文字列を見る。FG6 の dev server は
+            // bootstraplauncher+forgeserveruserdev でその語を持たず client と
+            // 誤認されるため、識別用の無害な -D マーカーを載せる。
+            property 'runclient_fresh.serverRun', 'true'
+            args '--nogui'
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+        gameTestServer {
+            property 'forge.enabledGameTestNamespaces', mod_id
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+        data {
+            workingDirectory project.file('run-data')
+            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'),
+                 '--existing', file('src/main/resources/')
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+repositories {
+    maven {
+        name = 'ParchmentMC'
+        url = 'https://maven.parchmentmc.org'
+    }
+    maven {
+        name = "Jared's maven"
+        url = "https://maven.blamejared.com/"
+    }
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+        content { includeGroup "maven.modrinth" }
+    }
+    maven { url = 'https://maven.ftb.dev/releases' }
+    maven { url = 'https://maven.architectury.dev/' }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+
+    // Jade: tooltip の表示先 API。配布 jar は SRG 名なので deobf が要る。
+    compileOnly(fg.deobf("maven.modrinth:jade:${jade_version}")) { transitive = false }
+    runtimeOnly(fg.deobf("maven.modrinth:jade:${jade_version}")) { transitive = false }
+
+    // FTB Chunks: claim データの読み取り元。FTB Library / FTB Teams は
+    // client.map.* 層が参照する型を提供する（mods.toml では ftbchunks の推移依存として届く）。
+    // 3つとも実 MOD としてユーザ側が導入するので jar には同梱しない。
+    compileOnly(fg.deobf("dev.ftb.mods:ftb-chunks-forge:${ftb_chunks_version}")) { transitive = false }
+    runtimeOnly(fg.deobf("dev.ftb.mods:ftb-chunks-forge:${ftb_chunks_version}")) { transitive = false }
+    compileOnly(fg.deobf("dev.ftb.mods:ftb-library-forge:${ftb_library_version}")) { transitive = false }
+    compileOnly(fg.deobf("dev.ftb.mods:ftb-teams-forge:${ftb_teams_version}")) { transitive = false }
+    runtimeOnly(fg.deobf("dev.ftb.mods:ftb-library-forge:${ftb_library_version}")) { transitive = false }
+    runtimeOnly(fg.deobf("dev.ftb.mods:ftb-teams-forge:${ftb_teams_version}")) { transitive = false }
+
+    // FTB Chunks の推移依存。dev run で class loading に必要。
+    // SRG 名の実 jar なので、mojmap 名のランタイムで動かすには deobf が要る。
+    runtimeOnly(fg.deobf("dev.architectury:architectury-forge:${architectury_version}")) { transitive = false }
+
+    // gametest sourceSet も同じ FTB/Jade 面に対してコンパイルする。
+    gametestImplementation(fg.deobf("maven.modrinth:jade:${jade_version}")) { transitive = false }
+    gametestImplementation(fg.deobf("dev.ftb.mods:ftb-chunks-forge:${ftb_chunks_version}")) { transitive = false }
+    gametestImplementation(fg.deobf("dev.ftb.mods:ftb-library-forge:${ftb_library_version}")) { transitive = false }
+    gametestImplementation(fg.deobf("dev.ftb.mods:ftb-teams-forge:${ftb_teams_version}")) { transitive = false }
+    gametestRuntimeOnly(fg.deobf("dev.architectury:architectury-forge:${architectury_version}")) { transitive = false }
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            forge_version          : forge_version,
+            forge_version_range    : forge_version_range,
+            loader_version_range   : loader_version_range,
+            jade_version_range     : jade_version_range,
+            ftb_chunks_version_range: ftb_chunks_version_range,
+            ftb_teams_version_range: ftb_teams_version_range,
+            ftb_library_version_range: ftb_library_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties
+    }
+}
+
+def licenseFile = file('LICENSE')
+def licenseRenamed = "LICENSE_${mod_id}"
+tasks.named('jar', Jar).configure {
+    inputs.file(licenseFile)
+    from(licenseFile) { rename { licenseRenamed } }
+    manifest {
+        attributes([
+                'Specification-Title'     : mod_id,
+                'Specification-Vendor'    : mod_authors,
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : mod_authors
+        ])
+    }
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication)
+    }
+    repositories {
+        maven { url "file://${project.projectDir}/repo" }
+    }
+}
+
+afterEvaluate {
+    // reobfJar は ForgeGradle が afterEvaluate で登録するため評価中は tasks.named
+    // で取れない。ここで reobf 済み SRG jar を mavenJava の artifact に差す。
+    // mapped dev jar (build/libs) は production runtime で名前が解決できない。
+    publishing.publications.named('mavenJava', MavenPublication) {
+        artifact(file("${buildDir}/reobfJar/output.jar")) {
+            builtBy tasks.named('reobfJar')
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
