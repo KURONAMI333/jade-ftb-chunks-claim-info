@@ -1,0 +1,69 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '6.0.54'
+    id 'org.parchmentmc.librarian.forgegradle' version '1.2.0.7-dev-SNAPSHOT'
+}
+
+version = mod_version
+group = mod_group_id
+base { archivesName = "${mod_id}-forge-1.19.2" }
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+minecraft {
+    mappings channel: 'parchment', version: "${parchment_mappings_version}-${minecraft_version}"
+    runs {
+        client { workingDirectory project.file('run/client'); mods { "${mod_id}" { source sourceSets.main } } }
+        server { workingDirectory project.file('run/server'); args '--nogui'; mods { "${mod_id}" { source sourceSets.main } } }
+    }
+}
+
+repositories {
+    maven { url = 'https://maven.ftb.dev/releases' }
+    maven { url = 'https://maven.architectury.dev/' }
+    maven { name = 'Modrinth'; url = 'https://api.modrinth.com/maven'; content { includeGroup 'maven.modrinth' } }
+    mavenCentral()
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    // Dev/runtime dependencies stay outside the addon jar. Pins are the inspected 1.19.2 Forge artifacts.
+    compileOnly fg.deobf("maven.modrinth:jade:${jade_version}")
+    compileOnly fg.deobf("dev.ftb.mods:ftb-chunks-forge:${ftb_chunks_version}")
+    compileOnly fg.deobf("dev.ftb.mods:ftb-teams-forge:${ftb_teams_version}")
+    compileOnly fg.deobf("dev.ftb.mods:ftb-library-forge:${ftb_library_version}")
+    compileOnly fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
+
+    runtimeOnly fg.deobf("maven.modrinth:jade:${jade_version}")
+    runtimeOnly fg.deobf("dev.ftb.mods:ftb-chunks-forge:${ftb_chunks_version}")
+    runtimeOnly fg.deobf("dev.ftb.mods:ftb-teams-forge:${ftb_teams_version}")
+    runtimeOnly fg.deobf("dev.ftb.mods:ftb-library-forge:${ftb_library_version}")
+    runtimeOnly fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
+
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test', Test) { useJUnitPlatform() }
+
+var generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
+    var values = [mod_id: mod_id, mod_name: mod_name, mod_license: mod_license,
+                  mod_version: mod_version, mod_authors: mod_authors, mod_description: mod_description,
+                  minecraft_version_range: '[1.19.2,1.19.3)', forge_version_range: '[43.5.2,)',
+                  jade_version_range: jade_version_range, ftb_chunks_version_range: ftb_chunks_version_range,
+                  ftb_teams_version_range: ftb_teams_version_range, ftb_library_version_range: ftb_library_version_range]
+    inputs.properties values
+    expand values
+    from 'src/main/templates'
+    into layout.buildDirectory.dir('generated/sources/modMetadata')
+}
+sourceSets.main.resources.srcDir generateModMetadata
+
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 17 }
+tasks.named('jar', Jar).configure {
+    inputs.file(file('LICENSE'))
+    from('LICENSE') { rename { "LICENSE_${mod_id}" } }
+}
+
+jar.finalizedBy("reobfJar")
